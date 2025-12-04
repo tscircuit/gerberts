@@ -1,9 +1,12 @@
 {
   "name": "gerberts",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Gerber file format parser and serializer for TypeScript",
   "type": "module",
   "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/tscircuit/gerberts.git"

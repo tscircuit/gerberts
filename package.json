@@ -1,8 +1,26 @@
 {
   "name": "gerberts",
-  "module": "index.ts",
+  "version": "0.0.1",
+  "description": "Gerber file format parser and serializer for TypeScript",
   "type": "module",
-  "private": true,
+  "main": "./lib/index.ts",
+  "module": "./lib/index.ts",
+  "types": "./lib/index.ts",
+  "exports": {
+    ".": "./lib/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "keywords": [
+    "gerber",
+    "pcb",
+    "parser",
+    "serializer",
+    "electronics"
+  ],
+  "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest",
     "bun-match-svg": "^0.0.14"

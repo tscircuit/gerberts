@@ -1,6 +1,6 @@
 # gerberts
 
-A TypeScript Gerber file parser and serializer following the [tscircuit parser/serializer library guidelines](./docs/TYPESCRIPT_LIBRARY_GUIDELINES.md).
+A TypeScript Gerber file parser and serializer.
 
 ## Installation
 
@@ -54,18 +54,22 @@ import {
 
 const gerber = new GerberFile()
 
-gerber.addCommand(new FormatSpecification({
-  xIntegerDigits: 2,
-  xDecimalDigits: 6,
-  yIntegerDigits: 2,
-  yDecimalDigits: 6,
-}))
+gerber.addCommand(
+  new FormatSpecification({
+    xIntegerDigits: 2,
+    xDecimalDigits: 6,
+    yIntegerDigits: 2,
+    yDecimalDigits: 6,
+  })
+)
 gerber.addCommand(new UnitMode("MM"))
-gerber.addCommand(new ApertureDefinition({
-  code: 10,
-  template: "C",
-  params: [0.1],
-}))
+gerber.addCommand(
+  new ApertureDefinition({
+    code: 10,
+    template: "C",
+    params: [0.1],
+  })
+)
 gerber.addCommand(new SelectAperture(10))
 gerber.addCommand(new Operation({ x: 0, y: 0, dcode: "D02" }))
 gerber.addCommand(new Operation({ x: 1000000, y: 1000000, dcode: "D01" }))
@@ -96,12 +100,14 @@ console.log(gerber.getString())
 ### Entity Classes
 
 **Configuration Commands:**
+
 - `FormatSpecification` - Format specification (%FS)
 - `UnitMode` - Unit mode (%MO)
 - `ApertureDefinition` - Aperture definition (%AD)
 - `ApertureMacro` - Aperture macro (%AM)
 
 **State Commands:**
+
 - `LoadPolarity` - Load polarity (%LP)
 - `LoadMirroring` - Load mirroring (%LM)
 - `LoadRotation` - Load rotation (%LR)
@@ -111,17 +117,20 @@ console.log(gerber.getString())
 - `SetInterpolationMode` - Set interpolation (G01/G02/G03)
 
 **Attribute Commands (X2):**
+
 - `FileAttribute` - File attribute (%TF)
 - `ApertureAttribute` - Aperture attribute (%TA)
 - `ObjectAttribute` - Object attribute (%TO)
 - `DeleteAttribute` - Delete attribute (%TD)
 
 **Drawing Commands:**
+
 - `Operation` - Draw/move/flash (D01/D02/D03)
 - `RegionStart` - Start region (G36)
 - `RegionEnd` - End region (G37)
 
 **Other:**
+
 - `Comment` - Comment (G04)
 - `EndOfFile` - End of file (M02)
 - `UnknownCommand` - Unrecognized commands (preserved for round-trip)

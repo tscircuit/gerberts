@@ -3,15 +3,17 @@
   "version": "0.0.1",
   "description": "Gerber file format parser and serializer for TypeScript",
   "type": "module",
-  "main": "./lib/index.ts",
-  "module": "./lib/index.ts",
-  "types": "./lib/index.ts",
-  "exports": {
-    ".": "./lib/index.ts"
+  "main": "./dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tscircuit/gerberts.git"
   },
   "scripts": {
     "test": "bun test",
-    "typecheck": "bunx tsc --noEmit"
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "typecheck": "bunx tsc --noEmit",
+    "build": "tsup-node ./lib/index.ts --format esm --dts"
   },
   "keywords": [
     "gerber",
@@ -23,7 +25,8 @@
   "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest",
-    "bun-match-svg": "^0.0.14"
+    "bun-match-svg": "^0.0.14",
+    "tsup": "^8.5.1"
   },
   "peerDependencies": {
     "typescript": "^5"

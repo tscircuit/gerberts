@@ -13,7 +13,9 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "typecheck": "bunx tsc --noEmit",
-    "build": "tsup-node ./lib/index.ts --format esm --dts"
+    "build": "tsup-node ./lib/index.ts --format esm --dts",
+    "build:site": "bun build ./site/index.html --outdir site-export",
+    "dev": "bun --hot ./site/index.html"
   },
   "keywords": [
     "gerber",
@@ -25,7 +27,12 @@
   "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "bun-match-svg": "^0.0.14",
+    "jszip": "^3.10.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tsup": "^8.5.1"
   },
   "peerDependencies": {

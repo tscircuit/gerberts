@@ -103,6 +103,32 @@ const flashCommand = GerberNode.parse("X500000Y500000D03*")
 gerber.addCommand(flashCommand)
 ```
 
+### Rendering to SVG
+
+Convert a parsed Gerber file into an SVG string for visualization:
+
+```ts
+import { parseGerberFile, renderGerberToSvg } from "gerberts"
+
+const gerber = parseGerberFile(`%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,0.1*%
+D10*
+X0Y0D03*
+M02*`)
+
+const svg = renderGerberToSvg(gerber, {
+  strokeColor: "#0070f3",
+  fillColor: "#111",
+  backgroundColor: "#f5f5f5",
+  scale: 2,
+})
+
+console.log(svg)
+```
+
+`renderGerberToSvg` accepts optional settings such as `strokeColor`, `fillColor`, `backgroundColor`, `scale`, and `padding` to tailor the output SVG.
+
 ## API
 
 ### Root Class

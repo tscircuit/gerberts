@@ -106,8 +106,7 @@ export class ApertureDefinition extends GerberNode {
   }
 
   getString(): string {
-    const paramsStr =
-      this.params.length > 0 ? `,${this.params.join("X")}` : ""
+    const paramsStr = this.params.length > 0 ? `,${this.params.join("X")}` : ""
     return `%ADD${this.code}${this.template}${paramsStr}*%`
   }
 }
@@ -250,7 +249,7 @@ export class FileAttribute extends GerberNode {
 
   constructor(
     public name: string,
-    public values: string[] = []
+    public values: string[] = [],
   ) {
     super()
   }
@@ -266,7 +265,7 @@ export class ApertureAttribute extends GerberNode {
 
   constructor(
     public name: string,
-    public values: string[] = []
+    public values: string[] = [],
   ) {
     super()
   }
@@ -282,7 +281,7 @@ export class ObjectAttribute extends GerberNode {
 
   constructor(
     public name: string,
-    public values: string[] = []
+    public values: string[] = [],
   ) {
     super()
   }
@@ -432,7 +431,7 @@ GerberNode.register(Flash)
  */
 export function createOperation(
   dcode: DCode,
-  init: CoordinateInit = {}
+  init: CoordinateInit = {},
 ): Operation {
   switch (dcode) {
     case "D01":
@@ -498,7 +497,7 @@ export class SetOffset extends GerberNode {
 
   constructor(
     public a: number = 0,
-    public b: number = 0
+    public b: number = 0,
   ) {
     super()
   }

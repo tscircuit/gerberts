@@ -424,3 +424,36 @@ export class EndOfFile extends GerberNode {
     return "M02*"
   }
 }
+
+// ============================================================================
+// Legacy Commands (deprecated but still found in older files)
+// ============================================================================
+
+export type ImagePolarity = "POS" | "NEG"
+
+export class SetImagePolarity extends GerberNode {
+  readonly type = "SetImagePolarity"
+
+  constructor(public polarity: ImagePolarity) {
+    super()
+  }
+
+  getString(): string {
+    return `%IP${this.polarity}*%`
+  }
+}
+
+export class SetOffset extends GerberNode {
+  readonly type = "SetOffset"
+
+  constructor(
+    public a: number = 0,
+    public b: number = 0
+  ) {
+    super()
+  }
+
+  getString(): string {
+    return `%OFA${this.a}B${this.b}*%`
+  }
+}

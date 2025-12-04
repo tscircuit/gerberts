@@ -24,6 +24,8 @@ import {
   Operation,
   SelectAperture,
   EndOfFile,
+  SetImagePolarity,
+  SetOffset,
   type Unit,
   type ZeroOmission,
   type CoordinateMode,
@@ -31,6 +33,7 @@ import {
   type Mirroring,
   type InterpolationMode,
   type DCode,
+  type ImagePolarity,
 } from "../ast/commands.ts"
 import { tokenize, type Token } from "./tokenizer.ts"
 
@@ -158,6 +161,22 @@ export class Parser {
         return new DeleteAttribute(rest.slice(1))
       }
       return new DeleteAttribute()
+    }
+
+    // Legacy: Image Polarity: IPPOS or IPNEG
+    if (content.startsWith("IP")) {
+      const polarity = content.slice(2) as ImagePolarity
+      return new SetImagePolarity(polarity)
+    }
+
+    // Legacy: Offset: OFA0B0
+    if (content.startsWith("OF")) {
+      const aMatch = content.match(/A([+-]?\d*\.?\d+)/)
+      const bMatch = content.match(/B([+-]?\d*\.?\d+)/)
+      return new SetOffset(
+        aMatch ? parseFloat(aMatch[1]!) : 0,
+        bMatch ? parseFloat(bMatch[1]!) : 0
+      )
     }
 
     // Unknown extended command

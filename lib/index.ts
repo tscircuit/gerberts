@@ -63,6 +63,11 @@ export {
 
   // End of file
   EndOfFile,
+
+  // Legacy commands
+  type ImagePolarity,
+  SetImagePolarity,
+  SetOffset,
 } from "./ast/index.ts"
 
 // Parser utilities
@@ -74,3 +79,10 @@ export {
   Parser,
   parseGerber,
 } from "./parser/index.ts"
+
+// Renderer
+export {
+  GerberToSvg,
+  renderGerberToSvg,
+  type RenderOptions,
+} from "./render/index.ts"

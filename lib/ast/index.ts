@@ -57,4 +57,9 @@ export {
 
   // End of file
   EndOfFile,
+
+  // Legacy commands
+  type ImagePolarity,
+  SetImagePolarity,
+  SetOffset,
 } from "./commands.ts"

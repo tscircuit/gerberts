@@ -21,7 +21,7 @@ import {
   Comment,
   RegionStart,
   RegionEnd,
-  Operation,
+  createOperation,
   SelectAperture,
   EndOfFile,
   SetImagePolarity,
@@ -342,7 +342,7 @@ export class Parser {
     return new UnknownCommand(`${value}*`)
   }
 
-  private parseOperation(value: string): Operation {
+  private parseOperation(value: string): GerberNode {
     const xMatch = value.match(/X([+-]?\d+)/)
     const yMatch = value.match(/Y([+-]?\d+)/)
     const iMatch = value.match(/I([+-]?\d+)/)
@@ -351,12 +351,11 @@ export class Parser {
 
     const dcode = `D0${dMatch?.[1] ?? "1"}` as DCode
 
-    return new Operation({
+    return createOperation(dcode, {
       x: xMatch ? parseInt(xMatch[1]!, 10) : undefined,
       y: yMatch ? parseInt(yMatch[1]!, 10) : undefined,
       i: iMatch ? parseInt(iMatch[1]!, 10) : undefined,
       j: jMatch ? parseInt(jMatch[1]!, 10) : undefined,
-      dcode,
     })
   }
 
@@ -382,12 +381,11 @@ export class Parser {
     // If there's a D-code, create an operation
     if (dMatch) {
       const dcode = `D0${dMatch[1]}` as DCode
-      return new Operation({
+      return createOperation(dcode, {
         x: xMatch ? parseInt(xMatch[1]!, 10) : undefined,
         y: yMatch ? parseInt(yMatch[1]!, 10) : undefined,
         i: iMatch ? parseInt(iMatch[1]!, 10) : undefined,
         j: jMatch ? parseInt(jMatch[1]!, 10) : undefined,
-        dcode,
       })
     }
 

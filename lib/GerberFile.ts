@@ -14,6 +14,9 @@ import {
   ApertureAttribute,
   ObjectAttribute,
   Operation,
+  Interpolate,
+  Move,
+  Flash,
   SelectAperture,
   Comment,
   RegionStart,
@@ -40,7 +43,7 @@ export class GerberFile extends GerberNode {
   /**
    * Parse a Gerber file from source text.
    */
-  static parse(source: string): GerberFile {
+  static override parse(source: string): GerberFile {
     const commands = parseGerber(source)
     return new GerberFile({ commands })
   }
@@ -112,7 +115,7 @@ export class GerberFile extends GerberNode {
    * Get all operations (D01, D02, D03).
    */
   get operations(): Operation[] {
-    return this.commands.filter((cmd) => cmd.type === "Operation") as Operation[]
+    return this.commands.filter((cmd) => cmd instanceof Operation) as Operation[]
   }
 
   /**
@@ -128,9 +131,27 @@ export class GerberFile extends GerberNode {
 
   /**
    * Add a command to the file.
+   * Accepts either a GerberNode instance or a Gerber command string.
+   *
+   * @example
+   * // Using a GerberNode instance
+   * gerber.addCommand(new Move({ x: 0, y: 0 }))
+   *
+   * // Using a string (parsed automatically)
+   * gerber.addCommand("X0Y0D02*")
+   *
+   * // Using GerberNode.parse explicitly
+   * gerber.addCommand(GerberNode.parse("X1000000Y1000000D01*"))
    */
-  addCommand(command: GerberNode): void {
-    this.commands.push(command)
+  addCommand(command: GerberNode | string): void {
+    if (typeof command === "string") {
+      const parsed = parseGerber(command)
+      for (const node of parsed) {
+        this.commands.push(node)
+      }
+    } else {
+      this.commands.push(command)
+    }
   }
 
   /**

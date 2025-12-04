@@ -44,12 +44,14 @@ const output = gerber.getString()
 ```ts
 import {
   GerberFile,
+  GerberNode,
   FormatSpecification,
   UnitMode,
   ApertureDefinition,
   SelectAperture,
-  Operation,
-  EndOfFile,
+  Move,
+  Interpolate,
+  Flash,
 } from "gerberts"
 
 const gerber = new GerberFile()
@@ -71,11 +73,32 @@ gerber.addCommand(
   })
 )
 gerber.addCommand(new SelectAperture(10))
-gerber.addCommand(new Operation({ x: 0, y: 0, dcode: "D02" }))
-gerber.addCommand(new Operation({ x: 1000000, y: 1000000, dcode: "D01" }))
+gerber.addCommand(new Move({ x: 0, y: 0 }))
+gerber.addCommand(new Interpolate({ x: 1000000, y: 1000000 }))
 gerber.ensureEndOfFile()
 
 console.log(gerber.getString())
+```
+
+### Adding commands from strings
+
+You can add commands directly from Gerber command strings:
+
+```ts
+const gerber = new GerberFile()
+
+// Add commands using raw Gerber syntax
+gerber.addCommand("%FSLAX26Y26*%")
+gerber.addCommand("%MOMM*%")
+gerber.addCommand("%ADD10C,0.1*%")
+gerber.addCommand("D10*")
+gerber.addCommand("X0Y0D02*")
+gerber.addCommand("X1000000Y1000000D01*")
+gerber.addCommand("M02*")
+
+// Or parse a command explicitly with GerberNode.parse
+const flashCommand = GerberNode.parse("X500000Y500000D03*")
+gerber.addCommand(flashCommand)
 ```
 
 ## API
@@ -125,7 +148,10 @@ console.log(gerber.getString())
 
 **Drawing Commands:**
 
-- `Operation` - Draw/move/flash (D01/D02/D03)
+- `Interpolate` - Draw/interpolate operation (D01)
+- `Move` - Move without drawing (D02)
+- `Flash` - Flash aperture at position (D03)
+- `Operation` - Base class for D-code operations
 - `RegionStart` - Start region (G36)
 - `RegionEnd` - End region (G37)
 

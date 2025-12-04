@@ -51,8 +51,12 @@ export {
 
   // D-codes and operations
   type DCode,
-  type OperationInit,
+  type CoordinateInit,
   Operation,
+  Interpolate,
+  Move,
+  Flash,
+  createOperation,
   SelectAperture,
 
   // End of file

@@ -357,30 +357,30 @@ export class RegionEnd extends GerberNode {
 
 export type DCode = "D01" | "D02" | "D03"
 
-export interface OperationInit {
+export interface CoordinateInit {
   x?: number
   y?: number
   i?: number
   j?: number
-  dcode: DCode
 }
 
-export class Operation extends GerberNode {
-  readonly type = "Operation"
-
+/**
+ * Base class for D-code operations.
+ */
+export abstract class Operation extends GerberNode {
   x?: number
   y?: number
   i?: number
   j?: number
-  dcode: DCode
 
-  constructor(init: OperationInit) {
+  abstract readonly dcode: DCode
+
+  constructor(init: CoordinateInit = {}) {
     super()
     this.x = init.x
     this.y = init.y
     this.i = init.i
     this.j = init.j
-    this.dcode = init.dcode
   }
 
   getString(): string {
@@ -391,6 +391,56 @@ export class Operation extends GerberNode {
     if (this.j !== undefined) str += `J${this.j}`
     str += `${this.dcode}*`
     return str
+  }
+}
+
+/**
+ * D01 - Interpolate (draw) operation.
+ * Creates a line or arc from the current position to the specified coordinates.
+ */
+export class Interpolate extends Operation {
+  readonly type = "Interpolate"
+  readonly dcode = "D01" as const
+  static override token = "D01"
+}
+GerberNode.register(Interpolate)
+
+/**
+ * D02 - Move operation.
+ * Moves to the specified coordinates without drawing.
+ */
+export class Move extends Operation {
+  readonly type = "Move"
+  readonly dcode = "D02" as const
+  static override token = "D02"
+}
+GerberNode.register(Move)
+
+/**
+ * D03 - Flash operation.
+ * Flashes the current aperture at the specified coordinates.
+ */
+export class Flash extends Operation {
+  readonly type = "Flash"
+  readonly dcode = "D03" as const
+  static override token = "D03"
+}
+GerberNode.register(Flash)
+
+/**
+ * Factory function to create the appropriate Operation subclass from a DCode.
+ */
+export function createOperation(
+  dcode: DCode,
+  init: CoordinateInit = {}
+): Operation {
+  switch (dcode) {
+    case "D01":
+      return new Interpolate(init)
+    case "D02":
+      return new Move(init)
+    case "D03":
+      return new Flash(init)
   }
 }
 

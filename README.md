@@ -1,6 +1,8 @@
 # gerberts
 
-A TypeScript Gerber file parser and serializer.
+[NPM Package](https://www.npmjs.com/package/gerberts) &middot; [View Online](https://gerber.tscircuit.com)
+
+A TypeScript Gerber file parser and serializer, also render Gerbers to SVG
 
 ## Installation
 

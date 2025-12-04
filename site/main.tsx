@@ -9,13 +9,36 @@ interface GerberLayer {
 }
 
 const GERBER_EXTENSIONS = [
-  ".gbr", ".ger", ".gtl", ".gbl", ".gts", ".gbs",
-  ".gto", ".gbo", ".gtp", ".gbp", ".gko", ".gm1",
-  ".g1", ".g2", ".g3", ".g4", ".top", ".bot",
-  ".smt", ".smb", ".sst", ".ssb", ".pst", ".psb",
+  ".gbr",
+  ".ger",
+  ".gtl",
+  ".gbl",
+  ".gts",
+  ".gbs",
+  ".gto",
+  ".gbo",
+  ".gtp",
+  ".gbp",
+  ".gko",
+  ".gm1",
+  ".g1",
+  ".g2",
+  ".g3",
+  ".g4",
+  ".top",
+  ".bot",
+  ".smt",
+  ".smb",
+  ".sst",
+  ".ssb",
+  ".pst",
+  ".psb",
 ]
 
-const LAYER_COLORS: Record<string, { stroke: string; fill: string; bg: string }> = {
+const LAYER_COLORS: Record<
+  string,
+  { stroke: string; fill: string; bg: string }
+> = {
   // Copper layers
   gtl: { stroke: "#ff5555", fill: "#ff5555", bg: "#330000" },
   gbl: { stroke: "#5555ff", fill: "#5555ff", bg: "#000033" },
@@ -41,12 +64,14 @@ const LAYER_COLORS: Record<string, { stroke: string; fill: string; bg: string }>
 
 function getLayerColors(filename: string) {
   const ext = filename.split(".").pop()?.toLowerCase() ?? ""
-  return LAYER_COLORS[ext] ?? { stroke: "#00ff00", fill: "#00ff00", bg: "#111111" }
+  return (
+    LAYER_COLORS[ext] ?? { stroke: "#00ff00", fill: "#00ff00", bg: "#111111" }
+  )
 }
 
 function isGerberFile(filename: string): boolean {
   const lower = filename.toLowerCase()
-  return GERBER_EXTENSIONS.some(ext => lower.endsWith(ext))
+  return GERBER_EXTENSIONS.some((ext) => lower.endsWith(ext))
 }
 
 function App() {
@@ -56,91 +81,98 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
-  const processGerberContent = useCallback((name: string, content: string): GerberLayer => {
-    try {
-      const gerberFile = parseGerberFile(content)
-      const colors = getLayerColors(name)
-      let svg = renderGerberToSvg(gerberFile, {
-        strokeColor: colors.stroke,
-        fillColor: colors.fill,
-        backgroundColor: colors.bg,
-        scale: 1,
-        padding: 0.5,
-      })
-      // Make SVG responsive by removing fixed dimensions
-      svg = svg
-        .replace(/\s+width="[^"]*"/, "")
-        .replace(/\s+height="[^"]*"/, "")
-        .replace("<svg ", '<svg style="max-width:100%;max-height:500px" ')
-      return { name, svg }
-    } catch (err) {
-      return {
-        name,
-        svg: "",
-        error: err instanceof Error ? err.message : "Failed to parse gerber file"
-      }
-    }
-  }, [])
-
-  const processFiles = useCallback(async (files: FileList | File[]) => {
-    setIsLoading(true)
-    setError(null)
-    setLayers([])
-    setSelectedLayer(0)
-
-    try {
-      const newLayers: GerberLayer[] = []
-
-      for (const file of Array.from(files)) {
-        if (file.name.toLowerCase().endsWith(".zip")) {
-          // Handle zip file
-          const JSZip = (await import("jszip")).default
-          const zip = await JSZip.loadAsync(file)
-
-          const gerberFiles: { name: string; content: string }[] = []
-
-          for (const [path, zipEntry] of Object.entries(zip.files)) {
-            if (zipEntry.dir) continue
-            const filename = path.split("/").pop() ?? path
-            if (isGerberFile(filename)) {
-              const content = await zipEntry.async("string")
-              gerberFiles.push({ name: filename, content })
-            }
-          }
-
-          if (gerberFiles.length === 0) {
-            setError("No gerber files found in the ZIP archive")
-            continue
-          }
-
-          for (const { name, content } of gerberFiles) {
-            newLayers.push(processGerberContent(name, content))
-          }
-        } else if (isGerberFile(file.name)) {
-          // Handle single gerber file
-          const content = await file.text()
-          newLayers.push(processGerberContent(file.name, content))
-        } else {
-          // Try to parse it anyway - might be a gerber without standard extension
-          try {
-            const content = await file.text()
-            newLayers.push(processGerberContent(file.name, content))
-          } catch {
-            setError(`Unsupported file format: ${file.name}`)
-          }
+  const processGerberContent = useCallback(
+    (name: string, content: string): GerberLayer => {
+      try {
+        const gerberFile = parseGerberFile(content)
+        const colors = getLayerColors(name)
+        let svg = renderGerberToSvg(gerberFile, {
+          strokeColor: colors.stroke,
+          fillColor: colors.fill,
+          backgroundColor: colors.bg,
+          scale: 1,
+          padding: 0.5,
+        })
+        // Make SVG responsive by removing fixed dimensions
+        svg = svg
+          .replace(/\s+width="[^"]*"/, "")
+          .replace(/\s+height="[^"]*"/, "")
+          .replace("<svg ", '<svg style="max-width:100%;max-height:500px" ')
+        return { name, svg }
+      } catch (err) {
+        return {
+          name,
+          svg: "",
+          error:
+            err instanceof Error ? err.message : "Failed to parse gerber file",
         }
       }
+    },
+    [],
+  )
 
-      if (newLayers.length > 0) {
-        setLayers(newLayers)
+  const processFiles = useCallback(
+    async (files: FileList | File[]) => {
+      setIsLoading(true)
+      setError(null)
+      setLayers([])
+      setSelectedLayer(0)
+
+      try {
+        const newLayers: GerberLayer[] = []
+
+        for (const file of Array.from(files)) {
+          if (file.name.toLowerCase().endsWith(".zip")) {
+            // Handle zip file
+            const JSZip = (await import("jszip")).default
+            const zip = await JSZip.loadAsync(file)
+
+            const gerberFiles: { name: string; content: string }[] = []
+
+            for (const [path, zipEntry] of Object.entries(zip.files)) {
+              if (zipEntry.dir) continue
+              const filename = path.split("/").pop() ?? path
+              if (isGerberFile(filename)) {
+                const content = await zipEntry.async("string")
+                gerberFiles.push({ name: filename, content })
+              }
+            }
+
+            if (gerberFiles.length === 0) {
+              setError("No gerber files found in the ZIP archive")
+              continue
+            }
+
+            for (const { name, content } of gerberFiles) {
+              newLayers.push(processGerberContent(name, content))
+            }
+          } else if (isGerberFile(file.name)) {
+            // Handle single gerber file
+            const content = await file.text()
+            newLayers.push(processGerberContent(file.name, content))
+          } else {
+            // Try to parse it anyway - might be a gerber without standard extension
+            try {
+              const content = await file.text()
+              newLayers.push(processGerberContent(file.name, content))
+            } catch {
+              setError(`Unsupported file format: ${file.name}`)
+            }
+          }
+        }
+
+        if (newLayers.length > 0) {
+          setLayers(newLayers)
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to process files")
+        console.error(err)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to process files")
-      console.error(err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [processGerberContent])
+    },
+    [processGerberContent],
+  )
 
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,9 +214,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-center">
-          Gerber Viewer
-        </h1>
+        <h1 className="text-3xl font-bold mb-8 text-center">Gerber Viewer</h1>
 
         {/* File Upload */}
         <div className="mb-8">
@@ -217,7 +247,9 @@ function App() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <p className={`mt-2 text-sm ${isDragging ? "text-blue-400" : "text-gray-400"}`}>
+                <p
+                  className={`mt-2 text-sm ${isDragging ? "text-blue-400" : "text-gray-400"}`}
+                >
                   {isLoading
                     ? "Processing..."
                     : isDragging
@@ -265,15 +297,37 @@ function App() {
                     }`}
                   >
                     {layer.error ? (
-                      <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <svg
+                        className="w-5 h-5 text-red-400 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-5 h-5 text-gray-400 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     )}
-                    <span className="text-sm font-mono truncate">{layer.name}</span>
+                    <span className="text-sm font-mono truncate">
+                      {layer.name}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -282,12 +336,17 @@ function App() {
             {/* Preview Section */}
             <div className="lg:col-span-3 bg-gray-800 rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">
-                Preview: <span className="font-mono text-blue-400">{currentLayer?.name}</span>
+                Preview:{" "}
+                <span className="font-mono text-blue-400">
+                  {currentLayer?.name}
+                </span>
               </h2>
 
               {currentLayer?.error ? (
                 <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 text-red-200">
-                  <p className="font-semibold mb-2">Failed to parse gerber file:</p>
+                  <p className="font-semibold mb-2">
+                    Failed to parse gerber file:
+                  </p>
                   <p className="font-mono text-sm">{currentLayer.error}</p>
                 </div>
               ) : currentLayer?.svg ? (
@@ -311,10 +370,12 @@ function App() {
           <div className="text-center text-gray-400 mt-8">
             <p className="mb-2">Upload Gerber files to preview them as SVG.</p>
             <p className="text-sm">
-              Supports single Gerber files or ZIP archives containing multiple layers.
+              Supports single Gerber files or ZIP archives containing multiple
+              layers.
             </p>
             <p className="text-sm mt-4 text-gray-500">
-              Supported formats: .gbr, .ger, .gtl, .gbl, .gts, .gbs, .gto, .gbo, .gtp, .gbp, .gko, .gm1
+              Supported formats: .gbr, .ger, .gtl, .gbl, .gts, .gbs, .gto, .gbo,
+              .gtp, .gbp, .gko, .gm1
             </p>
           </div>
         )}

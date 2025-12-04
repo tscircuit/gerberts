@@ -1,35 +1,33 @@
 // Root document class
-export { GerberFile, parseGerberFile, type GerberFileInit } from "./GerberFile.ts"
+export {
+  GerberFile,
+  parseGerberFile,
+  type GerberFileInit,
+} from "./GerberFile.ts"
 
 // AST base classes and node types
 export {
   GerberNode,
   UnknownCommand,
-
   // Coordinate types
   type Coordinate,
   type CoordinateInput,
   normalizeCoordinate,
-
   // Format Specification
   type ZeroOmission,
   type CoordinateMode,
   type FormatSpecInit,
   FormatSpecification,
-
   // Unit Mode
   type Unit,
   UnitMode,
-
   // Aperture Definition
   type ApertureTemplate,
   type ApertureDefinitionInit,
   ApertureDefinition,
-
   // Aperture Macro
   type ApertureMacroInit,
   ApertureMacro,
-
   // Load commands
   type Polarity,
   LoadPolarity,
@@ -37,24 +35,20 @@ export {
   LoadMirroring,
   LoadRotation,
   LoadScaling,
-
   // Step and Repeat
   type StepRepeatInit,
   StepRepeat,
-
   // Attributes
   FileAttribute,
   ApertureAttribute,
   ObjectAttribute,
   DeleteAttribute,
-
   // G-codes
   type InterpolationMode,
   SetInterpolationMode,
   Comment,
   RegionStart,
   RegionEnd,
-
   // D-codes and operations
   type DCode,
   type CoordinateInit,
@@ -64,10 +58,8 @@ export {
   Flash,
   createOperation,
   SelectAperture,
-
   // End of file
   EndOfFile,
-
   // Legacy commands
   type ImagePolarity,
   SetImagePolarity,

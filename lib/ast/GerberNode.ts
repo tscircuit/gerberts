@@ -35,7 +35,7 @@ export abstract class GerberNode {
   static register(nodeClass: typeof GerberNode): void {
     if (!nodeClass.token) {
       throw new Error(
-        `Class ${nodeClass.name} must have a static 'token' property to be registered`
+        `Class ${nodeClass.name} must have a static 'token' property to be registered`,
       )
     }
     GerberNode.classes.set(nodeClass.token, nodeClass)
@@ -60,9 +60,7 @@ export abstract class GerberNode {
       throw new Error(`Failed to parse Gerber command: ${source}`)
     }
     if (nodes.length > 1) {
-      throw new Error(
-        `Expected single command, got ${nodes.length}: ${source}`
-      )
+      throw new Error(`Expected single command, got ${nodes.length}: ${source}`)
     }
     return nodes[0]!
   }

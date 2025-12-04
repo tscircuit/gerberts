@@ -37,20 +37,23 @@ describe("roundtrip", () => {
   })
 
   test("with-attributes.gbr parses X2 attributes", () => {
-    const source = readFileSync(join(fixturesDir, "with-attributes.gbr"), "utf-8")
+    const source = readFileSync(
+      join(fixturesDir, "with-attributes.gbr"),
+      "utf-8",
+    )
     const gerber = parseGerberFile(source)
 
     // Verify file attributes
     expect(gerber.fileAttributes.length).toBe(4)
 
     const genSoftware = gerber.fileAttributes.find(
-      (a) => a.name === "GenerationSoftware"
+      (a) => a.name === "GenerationSoftware",
     )
     expect(genSoftware).toBeDefined()
     expect(genSoftware?.values).toEqual(["gerberts", "1.0.0"])
 
     const fileFunction = gerber.fileAttributes.find(
-      (a) => a.name === "FileFunction"
+      (a) => a.name === "FileFunction",
     )
     expect(fileFunction).toBeDefined()
     expect(fileFunction?.values).toEqual(["Copper", "L1", "Top"])

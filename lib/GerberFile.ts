@@ -70,9 +70,9 @@ export class GerberFile extends GerberNode {
    * Get the format specification command.
    */
   get formatSpecification(): FormatSpecification | undefined {
-    return this.commands.find(
-      (cmd) => cmd.type === "FormatSpecification"
-    ) as FormatSpecification | undefined
+    return this.commands.find((cmd) => cmd.type === "FormatSpecification") as
+      | FormatSpecification
+      | undefined
   }
 
   /**
@@ -89,7 +89,7 @@ export class GerberFile extends GerberNode {
    */
   get apertureDefinitions(): ApertureDefinition[] {
     return this.commands.filter(
-      (cmd) => cmd.type === "ApertureDefinition"
+      (cmd) => cmd.type === "ApertureDefinition",
     ) as ApertureDefinition[]
   }
 
@@ -98,7 +98,7 @@ export class GerberFile extends GerberNode {
    */
   get apertureMacros(): ApertureMacro[] {
     return this.commands.filter(
-      (cmd) => cmd.type === "ApertureMacro"
+      (cmd) => cmd.type === "ApertureMacro",
     ) as ApertureMacro[]
   }
 
@@ -107,7 +107,7 @@ export class GerberFile extends GerberNode {
    */
   get fileAttributes(): FileAttribute[] {
     return this.commands.filter(
-      (cmd) => cmd.type === "FileAttribute"
+      (cmd) => cmd.type === "FileAttribute",
     ) as FileAttribute[]
   }
 
@@ -115,7 +115,9 @@ export class GerberFile extends GerberNode {
    * Get all operations (D01, D02, D03).
    */
   get operations(): Operation[] {
-    return this.commands.filter((cmd) => cmd instanceof Operation) as Operation[]
+    return this.commands.filter(
+      (cmd) => cmd instanceof Operation,
+    ) as Operation[]
   }
 
   /**

@@ -60,7 +60,12 @@ export class GerberToSvg {
   private flashes: string[] = []
   private regionPath: string = ""
   private regions: string[] = []
-  private bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+  private bounds = {
+    minX: Infinity,
+    minY: Infinity,
+    maxX: -Infinity,
+    maxY: -Infinity,
+  }
   private options: Required<RenderOptions>
 
   constructor(options: RenderOptions = {}) {
@@ -197,8 +202,10 @@ export class GerberToSvg {
   }
 
   private handleOperation(op: Operation): void {
-    const newX = op.x !== undefined ? this.convertCoordinate(op.x) : this.state.x
-    const newY = op.y !== undefined ? this.convertCoordinate(op.y) : this.state.y
+    const newX =
+      op.x !== undefined ? this.convertCoordinate(op.x) : this.state.x
+    const newY =
+      op.y !== undefined ? this.convertCoordinate(op.y) : this.state.y
 
     this.updateBounds(newX, newY)
 
@@ -213,7 +220,7 @@ export class GerberToSvg {
           const strokeWidth = this.getApertureWidth()
           this.paths.push(
             `<line x1="${this.state.x}" y1="${this.state.y}" x2="${newX}" y2="${newY}" ` +
-            `stroke="${this.options.strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`
+              `stroke="${this.options.strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
           )
         }
         break
@@ -261,7 +268,8 @@ export class GerberToSvg {
     const fill = this.options.fillColor
 
     switch (ap.template) {
-      case "C": { // Circle
+      case "C": {
+        // Circle
         const diameter = ap.params[0] ?? 0.01
         const r = diameter / 2
         this.updateBounds(x - r, y - r)
@@ -269,7 +277,8 @@ export class GerberToSvg {
         return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`
       }
 
-      case "R": { // Rectangle
+      case "R": {
+        // Rectangle
         const width = ap.params[0] ?? 0.01
         const height = ap.params[1] ?? width
         const rx = x - width / 2
@@ -279,7 +288,8 @@ export class GerberToSvg {
         return `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" fill="${fill}"/>`
       }
 
-      case "O": { // Obround (pill shape)
+      case "O": {
+        // Obround (pill shape)
         const width = ap.params[0] ?? 0.01
         const height = ap.params[1] ?? width
         const radius = Math.min(width, height) / 2
@@ -307,6 +317,9 @@ export class GerberToSvg {
 /**
  * Render a GerberFile to SVG string.
  */
-export function renderGerberToSvg(gerber: GerberFile, options?: RenderOptions): string {
+export function renderGerberToSvg(
+  gerber: GerberFile,
+  options?: RenderOptions,
+): string {
   return new GerberToSvg(options).render(gerber)
 }

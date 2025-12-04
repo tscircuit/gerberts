@@ -46,7 +46,9 @@ export class Parser {
   }
 
   private peek(): Token {
-    return this.tokens[this.pos] ?? { type: "EOF", value: "", line: 0, column: 0 }
+    return (
+      this.tokens[this.pos] ?? { type: "EOF", value: "", line: 0, column: 0 }
+    )
   }
 
   private advance(): Token {
@@ -175,7 +177,7 @@ export class Parser {
       const bMatch = content.match(/B([+-]?\d*\.?\d+)/)
       return new SetOffset(
         aMatch ? parseFloat(aMatch[1]!) : 0,
-        bMatch ? parseFloat(bMatch[1]!) : 0
+        bMatch ? parseFloat(bMatch[1]!) : 0,
       )
     }
 
@@ -267,7 +269,7 @@ export class Parser {
   private parseAttribute<T extends GerberNode>(
     content: string,
     prefix: string,
-    Ctor: new (name: string, values: string[]) => T
+    Ctor: new (name: string, values: string[]) => T,
   ): T {
     const rest = content.slice(prefix.length)
     const parts = rest.split(",")
@@ -309,7 +311,12 @@ export class Parser {
     }
 
     // End of file
-    if (value === "M02" || value === "M00" || value === "M2" || value === "M0") {
+    if (
+      value === "M02" ||
+      value === "M00" ||
+      value === "M2" ||
+      value === "M0"
+    ) {
       return new EndOfFile()
     }
 
@@ -324,7 +331,7 @@ export class Parser {
 
     // Operation with coordinates: X1000Y2000D01, X500D02, Y300D03
     const operationMatch = value.match(
-      /^(X[+-]?\d+)?(Y[+-]?\d+)?(I[+-]?\d+)?(J[+-]?\d+)?(D0?[123])$/
+      /^(X[+-]?\d+)?(Y[+-]?\d+)?(I[+-]?\d+)?(J[+-]?\d+)?(D0?[123])$/,
     )
     if (operationMatch) {
       return this.parseOperation(value)
@@ -332,7 +339,7 @@ export class Parser {
 
     // Coordinate with G-code: G01X1000Y2000D01
     const gCodeOperationMatch = value.match(
-      /^G0?[123](X[+-]?\d+)?(Y[+-]?\d+)?(I[+-]?\d+)?(J[+-]?\d+)?(D0?[123])?$/
+      /^G0?[123](X[+-]?\d+)?(Y[+-]?\d+)?(I[+-]?\d+)?(J[+-]?\d+)?(D0?[123])?$/,
     )
     if (gCodeOperationMatch) {
       return this.parseGCodeOperation(value)

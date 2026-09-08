@@ -128,6 +128,25 @@ describe("parser", () => {
     expect(draw.dcode).toBe("D01")
   })
 
+  test("parses explicit decimal coordinates used by KiCad/CAM Gerber", () => {
+    const nodes = parseGerber("X1.27Y-0.635D03*")
+    expect(nodes[0]).toBeInstanceOf(Operation)
+
+    const flash = nodes[0] as Operation
+    expect(flash.dcode).toBe("D03")
+    expect(flash.x).toBe(1.27)
+    expect(flash.y).toBe(-0.635)
+    expect(flash.explicitDecimal).toBe(true)
+
+    const combined = parseGerber("G01X.5Y2.0D01*")
+    expect(combined[0]).toBeInstanceOf(Operation)
+    const draw = combined[0] as Operation
+    expect(draw.dcode).toBe("D01")
+    expect(draw.x).toBe(0.5)
+    expect(draw.y).toBe(2)
+    expect(draw.explicitDecimal).toBe(true)
+  })
+
   test("parses region mode", () => {
     const startNodes = parseGerber("G36*")
     expect(startNodes[0]).toBeInstanceOf(RegionStart)

@@ -361,6 +361,8 @@ export interface CoordinateInit {
   y?: number
   i?: number
   j?: number
+  /** True when X/Y/I/J used an explicit decimal (user units, not FS integers). */
+  explicitDecimal?: boolean
 }
 
 /**
@@ -371,6 +373,7 @@ export abstract class Operation extends GerberNode {
   y?: number
   i?: number
   j?: number
+  explicitDecimal?: boolean
 
   abstract readonly dcode: DCode
 
@@ -380,6 +383,7 @@ export abstract class Operation extends GerberNode {
     this.y = init.y
     this.i = init.i
     this.j = init.j
+    this.explicitDecimal = init.explicitDecimal || undefined
   }
 
   getString(): string {

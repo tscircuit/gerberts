@@ -37,6 +37,40 @@ import {
 } from "../ast/commands.ts"
 import { tokenize, type Token } from "./tokenizer.ts"
 
+/** Integer or explicit-decimal Gerber coordinate (X1.27, X.5, X-3). */
+const COORD = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)`
+const OPERATION_RE = new RegExp(
+  `^(X${COORD})?(Y${COORD})?(I${COORD})?(J${COORD})?(D0?[123])$`,
+)
+const GCODE_OPERATION_RE = new RegExp(
+  `^G0?[123](X${COORD})?(Y${COORD})?(I${COORD})?(J${COORD})?(D0?[123])?$`,
+)
+
+const parseCoord = (
+  value: string,
+  axis: "X" | "Y" | "I" | "J",
+): string | undefined => {
+  const match = value.match(new RegExp(`${axis}(${COORD})`))
+  return match?.[1]
+}
+
+const coordsFromCommand = (value: string) => {
+  const xRaw = parseCoord(value, "X")
+  const yRaw = parseCoord(value, "Y")
+  const iRaw = parseCoord(value, "I")
+  const jRaw = parseCoord(value, "J")
+  const explicitDecimal = [xRaw, yRaw, iRaw, jRaw].some((raw) =>
+    raw?.includes("."),
+  )
+  return {
+    x: xRaw === undefined ? undefined : parseFloat(xRaw),
+    y: yRaw === undefined ? undefined : parseFloat(yRaw),
+    i: iRaw === undefined ? undefined : parseFloat(iRaw),
+    j: jRaw === undefined ? undefined : parseFloat(jRaw),
+    explicitDecimal: explicitDecimal || undefined,
+  }
+}
+
 export class Parser {
   private tokens: Token[] = []
   private pos = 0
@@ -279,20 +313,20 @@ export class Parser {
   }
 
   private parseCommand(value: string): GerberNode {
-    // G-codes
-    if (value.startsWith("G01") || value === "G1") {
+    // G-codes (exact tokens; G01X...D01 is an operation, not a mode-only command)
+    if (value === "G01" || value === "G1") {
       return new SetInterpolationMode("G01")
     }
-    if (value.startsWith("G02") || value === "G2") {
+    if (value === "G02" || value === "G2") {
       return new SetInterpolationMode("G02")
     }
-    if (value.startsWith("G03") || value === "G3") {
+    if (value === "G03" || value === "G3") {
       return new SetInterpolationMode("G03")
     }
-    if (value.startsWith("G74")) {
+    if (value === "G74") {
       return new SetInterpolationMode("G74")
     }
-    if (value.startsWith("G75")) {
+    if (value === "G75") {
       return new SetInterpolationMode("G75")
     }
 
@@ -329,18 +363,14 @@ export class Parser {
       }
     }
 
-    // Operation with coordinates: X1000Y2000D01, X500D02, Y300D03
-    const operationMatch = value.match(
-      /^(X[+-]?\d+)?(Y[+-]?\d+)?(I[+-]?\d+)?(J[+-]?\d+)?(D0?[123])$/,
-    )
+    // Operation with coordinates: X1000Y2000D01, X1.27Y0.635D03
+    const operationMatch = value.match(OPERATION_RE)
     if (operationMatch) {
       return this.parseOperation(value)
     }
 
-    // Coordinate with G-code: G01X1000Y2000D01
-    const gCodeOperationMatch = value.match(
-      /^G0?[123](X[+-]?\d+)?(Y[+-]?\d+)?(I[+-]?\d+)?(J[+-]?\d+)?(D0?[123])?$/,
-    )
+    // Coordinate with G-code: G01X1000Y2000D01 or G01X1.5Y2.0D01
+    const gCodeOperationMatch = value.match(GCODE_OPERATION_RE)
     if (gCodeOperationMatch) {
       return this.parseGCodeOperation(value)
     }
@@ -350,20 +380,10 @@ export class Parser {
   }
 
   private parseOperation(value: string): GerberNode {
-    const xMatch = value.match(/X([+-]?\d+)/)
-    const yMatch = value.match(/Y([+-]?\d+)/)
-    const iMatch = value.match(/I([+-]?\d+)/)
-    const jMatch = value.match(/J([+-]?\d+)/)
     const dMatch = value.match(/D0?([123])/)
-
     const dcode = `D0${dMatch?.[1] ?? "1"}` as DCode
 
-    return createOperation(dcode, {
-      x: xMatch ? parseInt(xMatch[1]!, 10) : undefined,
-      y: yMatch ? parseInt(yMatch[1]!, 10) : undefined,
-      i: iMatch ? parseInt(iMatch[1]!, 10) : undefined,
-      j: jMatch ? parseInt(jMatch[1]!, 10) : undefined,
-    })
+    return createOperation(dcode, coordsFromCommand(value))
   }
 
   private parseGCodeOperation(value: string): GerberNode {
@@ -378,22 +398,12 @@ export class Parser {
       return new SetInterpolationMode(mode)
     }
 
-    // Parse as operation
-    const xMatch = rest.match(/X([+-]?\d+)/)
-    const yMatch = rest.match(/Y([+-]?\d+)/)
-    const iMatch = rest.match(/I([+-]?\d+)/)
-    const jMatch = rest.match(/J([+-]?\d+)/)
     const dMatch = rest.match(/D0?([123])/)
 
     // If there's a D-code, create an operation
     if (dMatch) {
       const dcode = `D0${dMatch[1]}` as DCode
-      return createOperation(dcode, {
-        x: xMatch ? parseInt(xMatch[1]!, 10) : undefined,
-        y: yMatch ? parseInt(yMatch[1]!, 10) : undefined,
-        i: iMatch ? parseInt(iMatch[1]!, 10) : undefined,
-        j: jMatch ? parseInt(jMatch[1]!, 10) : undefined,
-      })
+      return createOperation(dcode, coordsFromCommand(rest))
     }
 
     // Just coordinates without D-code - return interpolation mode

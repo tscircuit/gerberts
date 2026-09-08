@@ -91,4 +91,22 @@ M02*`
     expect(svg).toContain('width="1"')
     expect(svg).toContain('height="0.5"')
   })
+
+  test("renders explicit decimal flashes in user units, not FS integers", () => {
+    const source = `%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,0.5*%
+D10*
+X1.27Y0.635D03*
+M02*`
+
+    const gerber = parseGerberFile(source)
+    expect(gerber.operations).toHaveLength(1)
+    const svg = renderGerberToSvg(gerber)
+
+    expect(svg).toContain("<circle")
+    expect(svg).toContain('cx="1.27"')
+    expect(svg).toContain('cy="0.635"')
+    expect(svg).not.toContain('cx="0.00000127"')
+  })
 })

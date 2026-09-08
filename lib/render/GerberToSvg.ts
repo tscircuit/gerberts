@@ -203,9 +203,13 @@ export class GerberToSvg {
 
   private handleOperation(op: Operation): void {
     const newX =
-      op.x !== undefined ? this.convertCoordinate(op.x) : this.state.x
+      op.x !== undefined
+        ? this.convertCoordinate(op.x, op.explicitDecimal)
+        : this.state.x
     const newY =
-      op.y !== undefined ? this.convertCoordinate(op.y) : this.state.y
+      op.y !== undefined
+        ? this.convertCoordinate(op.y, op.explicitDecimal)
+        : this.state.y
 
     this.updateBounds(newX, newY)
 
@@ -245,7 +249,10 @@ export class GerberToSvg {
     this.state.y = newY
   }
 
-  private convertCoordinate(value: number): number {
+  private convertCoordinate(value: number, explicitDecimal?: boolean): number {
+    if (explicitDecimal) {
+      return value
+    }
     if (!this.state.formatSpec) {
       // Default: assume 2.4 format (integer part 2, decimal part 4)
       return value / 10000

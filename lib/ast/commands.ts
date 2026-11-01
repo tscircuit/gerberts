@@ -133,7 +133,9 @@ export class ApertureMacro extends GerberNode {
   }
 
   getString(): string {
-    return `%AM${this.name}*${this.content}%`
+    const terminator =
+      this.content && !this.content.trimEnd().endsWith("*") ? "*" : ""
+    return `%AM${this.name}*${this.content}${terminator}%`
   }
 }
 

@@ -3,20 +3,20 @@
  * Converts parsed Gerber files to SVG format for visualization.
  */
 
-import type { GerberFile } from "../GerberFile.ts"
-import type { GerberNode } from "../ast/GerberNode.ts"
 import {
   ApertureDefinition,
   FormatSpecification,
-  UnitMode,
-  SelectAperture,
-  SetInterpolationMode,
   LoadPolarity,
   Operation,
-  RegionStart,
   RegionEnd,
+  RegionStart,
+  SelectAperture,
+  SetInterpolationMode,
   type Unit,
+  UnitMode,
 } from "../ast/commands.ts"
+import type { GerberNode } from "../ast/GerberNode.ts"
+import type { GerberFile } from "../GerberFile.ts"
 
 export interface RenderOptions {
   /** Scale factor (default: 1) */
@@ -58,7 +58,7 @@ export class GerberToSvg {
   private apertures: Map<number, Aperture> = new Map()
   private paths: string[] = []
   private flashes: string[] = []
-  private regionPath: string = ""
+  private regionPath = ""
   private regions: string[] = []
   private bounds = {
     minX: Infinity,
@@ -89,17 +89,54 @@ export class GerberToSvg {
   }
 
   render(gerber: GerberFile): string {
+    // A renderer may be reused: no state from the previous file belongs here.
+    this.state = {
+      x: 0,
+      y: 0,
+      aperture: null,
+      interpolation: "linear",
+      regionMode: false,
+      polarity: "dark",
+      unit: "IN",
+      formatSpec: null,
+    }
+    this.apertures.clear()
+    this.paths = []
+    this.flashes = []
+    this.regionPath = ""
+    this.regions = []
+    this.bounds = {
+      minX: Infinity,
+      minY: Infinity,
+      maxX: -Infinity,
+      maxY: -Infinity,
+    }
+
     // First pass: collect apertures and format info
     for (const cmd of gerber.commands) {
       this.processCommand(cmd)
     }
 
+    // A file without coordinates still needs a valid, finite viewBox.
+    if (this.bounds.minX === Infinity) {
+      this.bounds = { minX: 0, minY: 0, maxX: 1, maxY: 1 }
+    }
+
     // Calculate viewBox
     const padding = this.options.padding
-    const width = this.bounds.maxX - this.bounds.minX + padding * 2
-    const height = this.bounds.maxY - this.bounds.minY + padding * 2
-    const viewMinX = this.bounds.minX - padding
-    const viewMinY = this.bounds.minY - padding
+    let width = this.bounds.maxX - this.bounds.minX + padding * 2
+    let height = this.bounds.maxY - this.bounds.minY + padding * 2
+    let viewMinX = this.bounds.minX - padding
+    let viewMinY = this.bounds.minY - padding
+    // A point or straight line can have zero extent with zero padding.
+    if (width === 0) {
+      width = 1
+      viewMinX -= 0.5
+    }
+    if (height === 0) {
+      height = 1
+      viewMinY -= 0.5
+    }
 
     // Build SVG
     const scale = this.options.scale
@@ -251,7 +288,7 @@ export class GerberToSvg {
       return value / 10000
     }
     const decimalDigits = this.state.formatSpec.xDecimalDigits
-    return value / Math.pow(10, decimalDigits)
+    return value / 10 ** decimalDigits
   }
 
   private getApertureWidth(): number {

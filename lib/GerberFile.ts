@@ -171,13 +171,20 @@ export class GerberFile extends GerberNode {
   }
 
   /**
-   * Ensure the file ends with M02.
+   * Ensure the file ends with a single M02, preserving other command order.
    */
   ensureEndOfFile(): void {
-    const hasEnd = this.commands.some((cmd) => cmd.type === "EndOfFile")
-    if (!hasEnd) {
-      this.commands.push(new EndOfFile())
+    let endOfFile: GerberNode | undefined
+    let writeIndex = 0
+    for (const command of this.commands) {
+      if (command.type === "EndOfFile") {
+        endOfFile ??= command
+      } else {
+        this.commands[writeIndex++] = command
+      }
     }
+    this.commands.length = writeIndex
+    this.commands.push(endOfFile ?? new EndOfFile())
   }
 }
 

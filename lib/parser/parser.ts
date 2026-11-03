@@ -162,7 +162,10 @@ export class Parser {
       if (rest.startsWith(".")) {
         return new DeleteAttribute(rest.slice(1))
       }
-      return new DeleteAttribute()
+      if (!rest) {
+        return new DeleteAttribute()
+      }
+      return new UnknownCommand(`%${value}%`)
     }
 
     // Legacy: Image Polarity: IPPOS or IPNEG

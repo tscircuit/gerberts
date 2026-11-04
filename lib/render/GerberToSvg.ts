@@ -218,6 +218,16 @@ export class GerberToSvg {
           this.regionPath += ` L ${newX} ${newY}`
         } else if (this.state.aperture) {
           const strokeWidth = this.getApertureWidth()
+          const radius = strokeWidth / 2
+          // Round caps extend by the stroke radius beyond both endpoints.
+          this.updateBounds(
+            Math.min(this.state.x, newX) - radius,
+            Math.min(this.state.y, newY) - radius,
+          )
+          this.updateBounds(
+            Math.max(this.state.x, newX) + radius,
+            Math.max(this.state.y, newY) + radius,
+          )
           this.paths.push(
             `<line x1="${this.state.x}" y1="${this.state.y}" x2="${newX}" y2="${newY}" ` +
               `stroke="${this.options.strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,

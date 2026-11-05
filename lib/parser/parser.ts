@@ -208,7 +208,7 @@ export class Parser {
 
   private parseApertureDefinition(content: string): ApertureDefinition {
     // ADD10C,0.5 or ADD11R,0.5X0.3
-    const match = content.match(/^ADD(\d+)([A-Za-z_][A-Za-z0-9_]*)(?:,(.*))?$/)
+    const match = content.match(/^ADD(\d+)([A-Za-z_$][A-Za-z0-9_]*)(?:,(.*))?$/)
 
     if (!match) {
       return new ApertureDefinition({ code: 10, template: "C" })

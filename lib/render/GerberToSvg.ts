@@ -36,6 +36,37 @@ interface Point {
   y: number
 }
 
+function isClockwise(contour: Point[]): boolean {
+  // Use the serialized decimal coordinates exactly: floating-point cross
+  // products can lose the winding sign of a small region at a large offset.
+  const coordinates = contour.flatMap(({ x, y }) => [x, y]).map((value) => {
+    const [mantissa = "", exponent = "0"] = value.toString().split("e")
+    const decimalPoint = mantissa.indexOf(".")
+    const decimalPlaces =
+      decimalPoint < 0 ? 0 : mantissa.length - decimalPoint - 1
+    return {
+      coefficient: BigInt(mantissa.replace(".", "")),
+      exponent: Number(exponent) - decimalPlaces,
+    }
+  })
+  const exponent = coordinates.reduce(
+    (minimum, coordinate) => Math.min(minimum, coordinate.exponent),
+    0,
+  )
+  const integers = coordinates.map(
+    (coordinate) =>
+      coordinate.coefficient * 10n ** BigInt(coordinate.exponent - exponent),
+  )
+  let area = 0n
+  for (let i = 0; i < integers.length; i += 2) {
+    const next = (i + 2) % integers.length
+    area +=
+      integers[i]! * integers[next + 1]! -
+      integers[next]! * integers[i + 1]!
+  }
+  return area < 0n
+}
+
 interface Aperture {
   code: number
   template: string
@@ -58,7 +89,7 @@ export class GerberToSvg {
   private apertures: Map<number, Aperture> = new Map()
   private paths: string[] = []
   private flashes: string[] = []
-  private regionPath: string = ""
+  private regionPath: Point[][] = []
   private regions: string[] = []
   private bounds = {
     minX: Infinity,
@@ -119,7 +150,7 @@ export class GerberToSvg {
 
     // Render regions first (they're usually filled areas)
     for (const region of this.regions) {
-      svg += `    <path d="${region}" fill="${this.options.fillColor}" stroke="none" fill-rule="evenodd"/>\n`
+      svg += `    <path d="${region}" fill="${this.options.fillColor}" stroke="none" fill-rule="nonzero"/>\n`
     }
 
     // Render paths (traces)
@@ -182,16 +213,27 @@ export class GerberToSvg {
 
     if (cmd instanceof RegionStart) {
       this.state.regionMode = true
-      this.regionPath = ""
+      this.regionPath = []
       return
     }
 
     if (cmd instanceof RegionEnd) {
-      if (this.regionPath) {
-        this.regions.push(this.regionPath + " Z")
+      // A valid Gerber contour has winding 0 outside and either +1 or -1
+      // throughout its interior, including cut-ins. Give all contours the
+      // same sign so one nonzero fill paints their union, without seams or
+      // repeated alpha composition. Keep separate G36/G37 statements separate.
+      const region = this.regionPath
+        .filter((contour) => contour.length > 1)
+        .map((contour) => {
+          const points = isClockwise(contour) ? [...contour].reverse() : contour
+          return `M ${points.map(({ x, y }) => `${x} ${y}`).join(" L ")} Z`
+        })
+        .join(" ")
+      if (region) {
+        this.regions.push(region)
       }
       this.state.regionMode = false
-      this.regionPath = ""
+      this.regionPath = []
       return
     }
 
@@ -212,10 +254,12 @@ export class GerberToSvg {
     switch (op.dcode) {
       case "D01": // Interpolate (draw)
         if (this.state.regionMode) {
-          if (!this.regionPath) {
-            this.regionPath = `M ${this.state.x} ${this.state.y}`
+          let contour = this.regionPath[this.regionPath.length - 1]
+          if (!contour) {
+            contour = [{ x: this.state.x, y: this.state.y }]
+            this.regionPath.push(contour)
           }
-          this.regionPath += ` L ${newX} ${newY}`
+          contour.push({ x: newX, y: newY })
         } else if (this.state.aperture) {
           const strokeWidth = this.getApertureWidth()
           this.paths.push(
@@ -226,8 +270,8 @@ export class GerberToSvg {
         break
 
       case "D02": // Move
-        if (this.state.regionMode && this.regionPath) {
-          this.regionPath += ` M ${newX} ${newY}`
+        if (this.state.regionMode) {
+          this.regionPath.push([{ x: newX, y: newY }])
         }
         break
 

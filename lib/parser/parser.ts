@@ -274,7 +274,8 @@ export class Parser {
     const rest = content.slice(prefix.length)
     const parts = rest.split(",")
     const name = parts[0] ?? ""
-    const values = parts.slice(1)
+    // CR/LF after a comma are formatting, not part of the attribute value.
+    const values = parts.slice(1).map((part) => part.replace(/^[\r\n]+/, ""))
     return new Ctor(name, values)
   }
 

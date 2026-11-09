@@ -42,6 +42,12 @@ interface Aperture {
   params: number[]
 }
 
+interface Graphic {
+  svg: string
+  clearPath: string
+  polarity: "dark" | "clear"
+}
+
 interface RenderState {
   x: number
   y: number
@@ -53,13 +59,16 @@ interface RenderState {
   formatSpec: FormatSpecification | null
 }
 
+// Isolate references across calls and separately loaded copies of the library.
+// IDs are internal SVG names, not security tokens.
+const svgIdPrefix = `gerber-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
+let nextSvgId = 0
+
 export class GerberToSvg {
   private state: RenderState
   private apertures: Map<number, Aperture> = new Map()
-  private paths: string[] = []
-  private flashes: string[] = []
-  private regionPath: string = ""
-  private regions: string[] = []
+  private graphics: Graphic[] = []
+  private regionPaths: string[] = []
   private bounds = {
     minX: Infinity,
     minY: Infinity,
@@ -117,25 +126,124 @@ export class GerberToSvg {
 
     svg += `  <g transform="${transform}">\n`
 
-    // Render regions first (they're usually filled areas)
-    for (const region of this.regions) {
-      svg += `    <path d="${region}" fill="${this.options.fillColor}" stroke="none" fill-rule="evenodd"/>\n`
-    }
-
-    // Render paths (traces)
-    for (const path of this.paths) {
-      svg += `    ${path}\n`
-    }
-
-    // Render flashes (pads)
-    for (const flash of this.flashes) {
-      svg += `    ${flash}\n`
-    }
+    svg += this.renderGraphics({ x: viewMinX, y: viewMinY, width, height })
 
     svg += "  </g>\n"
     svg += "</svg>"
 
     return svg
+  }
+
+  private addGraphic(svg: string, clearPath: string): void {
+    this.graphics.push({ svg, clearPath, polarity: this.state.polarity })
+  }
+
+  private createRegion(region: string): string {
+    return `<path d="${region}" fill="${this.options.fillColor}" stroke="none" fill-rule="evenodd"/>`
+  }
+
+  private renderGraphics({
+    x,
+    y,
+    width,
+    height,
+  }: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }): string {
+    const namespace = `${svgIdPrefix}-${nextSvgId++}`
+    const frame = this.rectanglePath({ x, y, width, height })
+    const definitions: string[] = []
+    let scene = ""
+    let stage = 0
+    for (const graphic of this.graphics) {
+      if (graphic.polarity === "dark") {
+        scene += `    ${graphic.svg}\n`
+      } else if (scene) {
+        const id = `${namespace}-clear-${stage++}`
+        // Clip the previous paints to the geometric complement of this clear.
+        // Clipping keeps their original colors/alpha and intersects geometry,
+        // rather than repeatedly blending a black eraser at antialiased edges.
+        definitions.push(
+          `<clipPath id="${id}-clip" clipPathUnits="userSpaceOnUse"><path d="${frame} ${graphic.clearPath}" clip-rule="evenodd"/></clipPath>`,
+          `<g id="${id}" clip-path="url(#${id}-clip)">${scene}</g>`,
+        )
+        // A normal drawing reference shares the preceding scene once. Keeping
+        // these groups in defs avoids both copied suffixes and deep XML nesting.
+        scene = `    <use href="#${id}"/>\n`
+      }
+    }
+    return definitions.length
+      ? `    <defs>${definitions.join("")}</defs>\n${scene}`
+      : scene
+  }
+
+  private rectanglePath({
+    x,
+    y,
+    width,
+    height,
+    radius = 0,
+  }: {
+    x: number
+    y: number
+    width: number
+    height: number
+    radius?: number
+  }): string {
+    if (radius === 0) {
+      return `M${x} ${y}H${x + width}V${y + height}H${x}Z`
+    }
+    return (
+      `M${x + radius} ${y}H${x + width - radius}` +
+      `A${radius} ${radius} 0 0 1 ${x + width} ${y + radius}` +
+      `V${y + height - radius}A${radius} ${radius} 0 0 1 ${x + width - radius} ${y + height}` +
+      `H${x + radius}A${radius} ${radius} 0 0 1 ${x} ${y + height - radius}` +
+      `V${y + radius}A${radius} ${radius} 0 0 1 ${x + radius} ${y}Z`
+    )
+  }
+
+  private circlePath({
+    x,
+    y,
+    radius,
+  }: {
+    x: number
+    y: number
+    radius: number
+  }): string {
+    return (
+      `M${x - radius} ${y}A${radius} ${radius} 0 1 0 ${x + radius} ${y}` +
+      `A${radius} ${radius} 0 1 0 ${x - radius} ${y}Z`
+    )
+  }
+
+  private tracePath({
+    x,
+    y,
+    width,
+  }: {
+    x: number
+    y: number
+    width: number
+  }): string {
+    const fromX = this.state.x
+    const fromY = this.state.y
+    const dx = x - fromX
+    const dy = y - fromY
+    const length = Math.hypot(dx, dy)
+    const radius = width / 2
+    if (length === 0) return this.circlePath({ x, y, radius })
+    const nx = (-dy / length) * radius
+    const ny = (dx / length) * radius
+    return (
+      `M${fromX - nx} ${fromY - ny}L${x - nx} ${y - ny}` +
+      `A${radius} ${radius} 0 0 1 ${x + nx} ${y + ny}` +
+      `L${fromX + nx} ${fromY + ny}` +
+      `A${radius} ${radius} 0 0 1 ${fromX - nx} ${fromY - ny}Z`
+    )
   }
 
   private processCommand(cmd: GerberNode): void {
@@ -182,16 +290,26 @@ export class GerberToSvg {
 
     if (cmd instanceof RegionStart) {
       this.state.regionMode = true
-      this.regionPath = ""
+      this.regionPaths = []
       return
     }
 
     if (cmd instanceof RegionEnd) {
-      if (this.regionPath) {
-        this.regions.push(this.regionPath + " Z")
+      // Independent contours in a clear region remove their union. Applying
+      // each complete contour's complement intersects the remaining image,
+      // while preserving holes formed by a cut-in within one contour.
+      const paths =
+        this.state.polarity === "clear"
+          ? this.regionPaths
+          : [this.regionPaths.join(" ")]
+      for (const path of paths) {
+        if (path) {
+          const region = path + " Z"
+          this.addGraphic(this.createRegion(region), region)
+        }
       }
       this.state.regionMode = false
-      this.regionPath = ""
+      this.regionPaths = []
       return
     }
 
@@ -212,22 +330,23 @@ export class GerberToSvg {
     switch (op.dcode) {
       case "D01": // Interpolate (draw)
         if (this.state.regionMode) {
-          if (!this.regionPath) {
-            this.regionPath = `M ${this.state.x} ${this.state.y}`
+          if (this.regionPaths.length === 0) {
+            this.regionPaths.push(`M ${this.state.x} ${this.state.y}`)
           }
-          this.regionPath += ` L ${newX} ${newY}`
+          this.regionPaths[this.regionPaths.length - 1] += ` L ${newX} ${newY}`
         } else if (this.state.aperture) {
           const strokeWidth = this.getApertureWidth()
-          this.paths.push(
+          this.addGraphic(
             `<line x1="${this.state.x}" y1="${this.state.y}" x2="${newX}" y2="${newY}" ` +
               `stroke="${this.options.strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
+            this.tracePath({ x: newX, y: newY, width: strokeWidth }),
           )
         }
         break
 
       case "D02": // Move
-        if (this.state.regionMode && this.regionPath) {
-          this.regionPath += ` M ${newX} ${newY}`
+        if (this.state.regionMode && this.regionPaths.length > 0) {
+          this.regionPaths.push(`M ${newX} ${newY}`)
         }
         break
 
@@ -235,7 +354,7 @@ export class GerberToSvg {
         if (this.state.aperture) {
           const flash = this.createFlash(newX, newY)
           if (flash) {
-            this.flashes.push(flash)
+            this.addGraphic(flash.svg, flash.clearPath)
           }
         }
         break
@@ -261,7 +380,10 @@ export class GerberToSvg {
     return params[0] ?? 0.01
   }
 
-  private createFlash(x: number, y: number): string | null {
+  private createFlash(
+    x: number,
+    y: number,
+  ): { svg: string; clearPath: string } | null {
     const ap = this.state.aperture
     if (!ap) return null
 
@@ -274,7 +396,10 @@ export class GerberToSvg {
         const r = diameter / 2
         this.updateBounds(x - r, y - r)
         this.updateBounds(x + r, y + r)
-        return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`
+        return {
+          svg: `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`,
+          clearPath: this.circlePath({ x, y, radius: r }),
+        }
       }
 
       case "R": {
@@ -285,7 +410,10 @@ export class GerberToSvg {
         const ry = y - height / 2
         this.updateBounds(rx, ry)
         this.updateBounds(rx + width, ry + height)
-        return `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" fill="${fill}"/>`
+        return {
+          svg: `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" fill="${fill}"/>`,
+          clearPath: this.rectanglePath({ x: rx, y: ry, width, height }),
+        }
       }
 
       case "O": {
@@ -297,12 +425,24 @@ export class GerberToSvg {
         const ry = y - height / 2
         this.updateBounds(rx, ry)
         this.updateBounds(rx + width, ry + height)
-        return `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="${fill}"/>`
+        return {
+          svg: `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="${fill}"/>`,
+          clearPath: this.rectanglePath({
+            x: rx,
+            y: ry,
+            width,
+            height,
+            radius,
+          }),
+        }
       }
 
       default:
         // For unknown apertures, draw a small circle
-        return `<circle cx="${x}" cy="${y}" r="0.005" fill="${fill}"/>`
+        return {
+          svg: `<circle cx="${x}" cy="${y}" r="0.005" fill="${fill}"/>`,
+          clearPath: this.circlePath({ x, y, radius: 0.005 }),
+        }
     }
   }
 

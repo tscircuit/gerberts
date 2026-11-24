@@ -279,14 +279,15 @@ export class Parser {
   }
 
   private parseCommand(value: string): GerberNode {
-    // G-codes
-    if (value.startsWith("G01") || value === "G1") {
+    // G-codes (exact match only; G01X1000Y2000D01-style combined blocks
+    // are handled by the gCodeOperationMatch branch below)
+    if (value === "G01" || value === "G1") {
       return new SetInterpolationMode("G01")
     }
-    if (value.startsWith("G02") || value === "G2") {
+    if (value === "G02" || value === "G2") {
       return new SetInterpolationMode("G02")
     }
-    if (value.startsWith("G03") || value === "G3") {
+    if (value === "G03" || value === "G3") {
       return new SetInterpolationMode("G03")
     }
     if (value.startsWith("G74")) {
